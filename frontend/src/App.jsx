@@ -8,12 +8,11 @@ const mockResult = {
     { name: 'Door', position: 'right' },
   ],
   text_detected: ['EXIT'],
-  spoken_description:
-    'A backpack is ahead. A chair is on the left, and a doorway is visible on the right.',
+  spoken_description: 'A backpack is ahead. A chair is on the left, and a doorway is visible on the right.',
 }
 
-const directionLabel = (position) =>
-  ({ left: 'Left', right: 'Right', center: 'Ahead' }[position] || position)
+const directionLabel = (position) => ({ left: 'Left', right: 'Right', center: 'Ahead' }[position] || position)
+const directionArrow = (position) => ({ left: '←', right: '→', center: '↑' }[position] || '•')
 
 export default function App() {
   const inputRef = useRef(null)
@@ -39,16 +38,12 @@ export default function App() {
 
   async function analyze() {
     if (!file) {
-      setError('Choose or take a photo first.')
+      setError('Take or choose a photo first.')
       return
     }
     setLoading(true)
     setError('')
     setResult(null)
-
-    // Mock response for independent frontend development.
-    // Replace this block with fetch(`${API_URL}/analyze`, { method: 'POST', body: formData })
-    // when the FastAPI backend is ready.
     await new Promise((resolve) => setTimeout(resolve, 850))
     setResult(mockResult)
     setLoading(false)
@@ -60,110 +55,78 @@ export default function App() {
     window.speechSynthesis?.speak(new SpeechSynthesisUtterance(result.spoken_description))
   }
 
+  function reset() {
+    if (preview) URL.revokeObjectURL(preview)
+    setFile(null)
+    setPreview('')
+    setResult(null)
+    setError('')
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
   return (
-    <main className="app-shell">
-      <header className="hero">
-        <div className="brand-mark" aria-hidden="true">◉</div>
-        <div>
-          <p className="eyebrow">ACCESSIBLE SCENE AWARENESS</p>
-          <h1>EchoWorld</h1>
-          <p className="subtitle">Hear what’s around you from a single photo.</p>
+    <main className="phone-shell">
+      <header className="topbar">
+        <div className="brand">
+          <span className="logo" aria-hidden="true"><span className="logo-wave">◖</span></span>
+          <div><h1>EchoWorld</h1><p>Hear what’s around you</p></div>
         </div>
+        <span className="prototype-pill">PROTOTYPE</span>
       </header>
 
-      <section className="card upload-card" aria-labelledby="photo-heading">
-        <div className="section-heading">
-          <div>
-            <p className="step">STEP 1</p>
-            <h2 id="photo-heading">Choose your view</h2>
+      <input ref={inputRef} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={selectFile} aria-label="Take or choose a scene photo" />
+
+      {!result && (
+        <section className="capture-screen">
+          <div className={`camera-frame ${preview ? 'has-photo' : ''}`}>
+            {preview ? (
+              <img src={preview} alt="Scene selected for analysis" className="camera-preview" />
+            ) : (
+              <div className="camera-empty">
+                <div className="viewfinder" aria-hidden="true"><span /><span /><span /><span /></div>
+                <div className="camera-symbol" aria-hidden="true">◎</div>
+                <h2>Point toward the space ahead</h2>
+                <p>Take one clear photo and EchoWorld will describe the most important things around you.</p>
+              </div>
+            )}
+            {preview && <button className="change-photo" onClick={() => inputRef.current?.click()}>Retake</button>}
           </div>
-          <span className="status-dot">Ready</span>
-        </div>
 
-        <input
-          ref={inputRef}
-          className="visually-hidden"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={selectFile}
-          aria-label="Choose or take a scene photo"
-        />
-
-        {preview ? (
-          <div className="preview-wrap">
-            <img src={preview} alt="Scene selected for analysis" className="preview" />
-            <button className="secondary-button" onClick={() => inputRef.current?.click()}>
-              Change photo
+          {!preview ? (
+            <button className="camera-button" onClick={() => inputRef.current?.click()} aria-label="Open camera or choose photo">
+              <span className="camera-button-icon" aria-hidden="true">●</span>
+              <span><strong>Take a Photo</strong><small>Camera or photo library</small></span>
             </button>
-          </div>
-        ) : (
-          <button className="drop-zone" onClick={() => inputRef.current?.click()}>
-            <span className="camera-icon" aria-hidden="true">▣</span>
-            <strong>Take or upload a photo</strong>
-            <span>Use a clear image of the space ahead of you.</span>
-          </button>
-        )}
-
-        <button className="analyze-button" onClick={analyze} disabled={loading}>
-          {loading ? <span className="spinner" aria-hidden="true" /> : <span aria-hidden="true">✦</span>}
-          {loading ? 'Analyzing scene…' : 'Analyze Scene'}
-        </button>
-        {error && <p className="error" role="alert">{error}</p>}
-      </section>
-
-      {result && (
-        <section className="results" aria-live="polite">
-          <div className="section-heading results-heading">
-            <div>
-              <p className="step">STEP 2</p>
-              <h2>What’s around you</h2>
-            </div>
-            <span className="scene-label">{result.scene}</span>
-          </div>
-
-          <div className="spoken-card">
-            <span className="sound-icon" aria-hidden="true">)))</span>
-            <div>
-              <p className="mini-label">SCENE DESCRIPTION</p>
-              <p>{result.spoken_description}</p>
-            </div>
-            <button className="replay" onClick={speak} aria-label="Replay spoken scene description">▶ Replay</button>
-          </div>
-
-          {result.hazards.length > 0 && (
-            <div className="result-group hazard-group">
-              <h3><span aria-hidden="true">⚠</span> Potential hazards</h3>
-              {result.hazards.map((item) => (
-                <div className="result-row" key={`${item.name}-${item.position}`}>
-                  <strong>{item.name}</strong><span>{directionLabel(item.position)}</span>
-                </div>
-              ))}
-            </div>
+          ) : (
+            <button className="analyze-button" onClick={analyze} disabled={loading}>
+              <span aria-hidden="true">{loading ? '◌' : '✦'}</span>
+              <span><strong>{loading ? 'Analyzing scene…' : 'Analyze Scene'}</strong><small>{loading ? 'Finding useful details' : 'Get an audio description'}</small></span>
+            </button>
           )}
 
-          <div className="result-grid">
-            <div className="result-group">
-              <h3>Objects</h3>
-              {result.objects.map((item) => (
-                <div className="result-row" key={`${item.name}-${item.position}`}>
-                  <strong>{item.name}</strong><span>{directionLabel(item.position)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="result-group">
-              <h3>Visible text</h3>
-              {result.text_detected.length ? result.text_detected.map((text) => (
-                <div className="text-chip" key={text}>“{text}”</div>
-              )) : <p className="muted">No text detected</p>}
-            </div>
-          </div>
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="tip"><span aria-hidden="true">◉</span><p><strong>For best results</strong><br />Hold your phone steady and keep the path ahead visible.</p></div>
         </section>
       )}
 
-      <footer>
-        <strong>Prototype notice:</strong> EchoWorld can make mistakes and is not a substitute for a cane, guide dog, sighted guide, or other mobility aid.
-      </footer>
+      {result && (
+        <section className="results-screen" aria-live="polite">
+          <div className="result-topline"><div><p className="overline">SCENE ANALYZED</p><h2>{result.scene}</h2></div><button className="new-scan" onClick={reset}>New photo</button></div>
+
+          <button className="voice-card" onClick={speak} aria-label="Play scene description">
+            <span className="voice-circle" aria-hidden="true">▶</span>
+            <span className="voice-copy"><small>AUDIO DESCRIPTION</small><strong>{result.spoken_description}</strong><em>Tap to hear again</em></span>
+          </button>
+
+          {result.hazards.length > 0 && <div className="hazard-card"><div className="card-title"><span aria-hidden="true">!</span><strong>Pay attention</strong></div>{result.hazards.map((item) => <div className="object-row" key={`${item.name}-${item.position}`}><span><strong>{item.name}</strong><small>Potential obstacle</small></span><b>{directionArrow(item.position)} {directionLabel(item.position)}</b></div>)}</div>}
+
+          <div className="objects-card"><div className="card-title"><span aria-hidden="true">◇</span><strong>Nearby objects</strong></div>{result.objects.map((item) => <div className="object-row" key={`${item.name}-${item.position}`}><span><strong>{item.name}</strong><small>Detected object</small></span><b>{directionArrow(item.position)} {directionLabel(item.position)}</b></div>)}</div>
+
+          {result.text_detected.length > 0 && <div className="text-card"><div className="card-title"><span aria-hidden="true">T</span><strong>Visible text</strong></div><div className="detected-text">{result.text_detected.join(' · ')}</div></div>}
+        </section>
+      )}
+
+      <footer><span aria-hidden="true">ⓘ</span><p><strong>Use alongside your mobility aids.</strong> EchoWorld is an experimental prototype and can miss or misidentify objects.</p></footer>
     </main>
   )
 }
