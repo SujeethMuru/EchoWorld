@@ -1,0 +1,17 @@
+node_modules
+# Secret environment files
+.env.local
+.env
+.env.*
+
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+
+# Vite
+dist/
+
+# Logs
+*.log
