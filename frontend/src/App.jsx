@@ -44,9 +44,32 @@ export default function App() {
     setLoading(true)
     setError('')
     setResult(null)
-    await new Promise((resolve) => setTimeout(resolve, 850))
-    setResult(mockResult)
-    setLoading(false)
+
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Unable to analyze the image.')
+
+      setResult({
+        scene: payload.sceneSummary,
+        hazards: payload.objects
+          .filter((item) => item.priority === 'high')
+          .map((item) => ({ name: item.name, position: item.direction })),
+        objects: payload.objects.map((item) => ({ name: item.name, position: item.direction })),
+        text_detected: [],
+        spoken_description: payload.narration,
+      })
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to analyze the image.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   function speak() {
