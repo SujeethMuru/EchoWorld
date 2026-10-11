@@ -4,6 +4,20 @@ import { sceneAnalysisSchema } from "../../../lib/scene-schema";
 
 export const runtime = "nodejs";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export function OPTIONS() {
+  return new Response(null, { status: 204, headers: corsHeaders });
+}
+
+function json(data: unknown, status = 200) {
+  return NextResponse.json(data, { status, headers: corsHeaders });
+}
+
 const prompt = `You are an assistive scene-description system.
 
 Analyze the provided image and identify the most relevant visible objects.
@@ -24,19 +38,19 @@ export async function POST(request: Request) {
   const image = formData.get("image");
 
   if (!(image instanceof File)) {
-    return NextResponse.json({ error: "An image file is required." }, { status: 400 });
+    return json({ error: "An image file is required." }, 400);
   }
 
   if (!image.type.startsWith("image/")) {
-    return NextResponse.json({ error: "The uploaded file must be an image." }, { status: 415 });
+    return json({ error: "The uploaded file must be an image." }, 415);
   }
 
   if (image.size === 0 || image.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: "Image must be between 1 byte and 10 MB." }, { status: 413 });
+    return json({ error: "Image must be between 1 byte and 10 MB." }, 413);
   }
 
   if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: "GEMINI_API_KEY is not configured." }, { status: 503 });
+    return json({ error: "GEMINI_API_KEY is not configured." }, 503);
   }
 
   try {
@@ -49,9 +63,9 @@ export async function POST(request: Request) {
     });
 
     const parsed = sceneAnalysisSchema.parse(JSON.parse(response.text || "{}"));
-    return NextResponse.json(parsed);
+    return json(parsed);
   } catch (error) {
     console.error("Scene analysis failed", error);
-    return NextResponse.json({ error: "Unable to analyze the image." }, { status: 502 });
+    return json({ error: "Unable to analyze the image." }, 502);
   }
 }

@@ -13,6 +13,7 @@ const mockResult = {
 
 const directionLabel = (position) => ({ left: 'Left', right: 'Right', center: 'Ahead' }[position] || position)
 const directionArrow = (position) => ({ left: '←', right: '→', center: '↑' }[position] || '•')
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 export default function App() {
   const inputRef = useRef(null)
@@ -49,7 +50,7 @@ export default function App() {
       const formData = new FormData()
       formData.append('image', file)
 
-      const response = await fetch('/api/analyze', {
+      const response = await fetch(`${API_BASE_URL}/api/analyze`, {
         method: 'POST',
         body: formData,
       })
